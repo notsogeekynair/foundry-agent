@@ -1,0 +1,273 @@
+# AI Agent Tool Integration Demo Report
+
+## Azure AI Foundry Agent + MCP Server + Employee Management API
+
+### 1. Objective
+
+The objective of this project was to demonstrate how an Azure AI Foundry Agent can interact with external systems using tools defined via an OpenAPI schema.
+A custom MCP (Model Context Protocol) server was created to act as a bridge between the agent and a backend employee management API.
+
+The system allows a natural language request such as:
+
+"Add Alice as a Data Analyst in Finance"
+
+to trigger a tool call that inserts a record into a backend database.
+
+---
+
+# 2. System Architecture
+
+The architecture consists of four layers:
+
+User
+↓
+Azure AI Foundry Agent
+↓
+MCP Tool Server (FastAPI)
+↓
+Employee Management API
+↓
+Database (SQLite)
+
+### Component Description
+
+1. **Azure AI Foundry Agent**
+
+   * Handles natural language interaction with the user.
+   * Determines when to call a tool.
+   * Uses the OpenAPI schema to understand tool capabilities.
+
+2. **MCP Server**
+
+   * A FastAPI service that exposes AI-compatible tool endpoints.
+   * Implements the tool logic defined in the OpenAPI schema.
+   * Forwards requests to the backend Employee API.
+
+3. **Employee Management API**
+
+   * REST API built with FastAPI.
+   * Handles CRUD operations for employee records.
+   * Uses SQLAlchemy for database interaction.
+
+4. **Database**
+
+   * SQLite database stored within the container.
+   * Stores employee records.
+
+---
+
+# 3. Technologies Used
+
+| Component         | Technology           |
+| ----------------- | -------------------- |
+| Agent Platform    | Azure AI Foundry     |
+| Tool Interface    | OpenAPI 3.0          |
+| Tool Server       | FastAPI              |
+| Backend API       | FastAPI              |
+| ORM               | SQLAlchemy           |
+| Database          | SQLite               |
+| Deployment        | Azure Container Apps |
+| Containerization  | Docker               |
+| API Communication | HTTPX                |
+
+---
+
+# 4. Implementation Steps
+
+## Step 1 – Build the Employee Management API
+
+A FastAPI backend was implemented to manage employee records.
+
+Endpoints implemented:
+
+GET /employees
+POST /employees
+GET /employees/{emp_id}
+PUT /employees/{emp_id}
+DELETE /employees/{emp_id}
+
+Example employee model:
+
+Employee:
+
+* name
+* role
+* department
+
+The API uses SQLAlchemy to store data in a SQLite database.
+
+---
+
+## Step 2 – Create the MCP Tool Server
+
+A second FastAPI service was created to act as the AI tool server.
+
+Responsibilities:
+
+* Provide agent-compatible endpoints
+* Call the backend API
+* Return responses in a format defined by the OpenAPI schema
+
+Example tool logic:
+
+create_employee():
+
+* Receive name, role, department
+* Send POST request to Employee API
+* Return confirmation message
+
+HTTP requests to the backend API are performed using the `httpx` library.
+
+---
+
+## Step 3 – Generate the OpenAPI Tool Schema
+
+The MCP server automatically generates an OpenAPI schema.
+
+This schema describes available tools:
+
+CreateEmployee
+GetAllEmployees
+UpdateEmployee
+DeleteEmployee
+
+The schema was exported from:
+
+/openapi.json
+
+The schema was then imported into Azure AI Foundry as an **Agent Tool**.
+
+---
+
+## Step 4 – Deploy Services to Azure Container Apps
+
+Both services were containerized and deployed to Azure.
+
+Containers deployed:
+
+employee-api
+employee-mcp-api
+
+Deployment command example:
+
+az containerapp up 
+--name employee-api 
+--resource-group mcp-agent-rg 
+--location eastus 
+--source .
+
+Ingress was enabled to allow external access:
+
+az containerapp ingress enable 
+--name employee-api 
+--resource-group mcp-agent-rg 
+--type external 
+--target-port 9000
+
+---
+
+## Step 5 – Configure the Foundry Agent
+
+The OpenAPI schema from the MCP server was imported into the agent as a tool.
+
+Agent instructions were configured to guide tool usage.
+
+Example instruction logic:
+
+When a user asks to add an employee:
+
+* Extract name, role, department
+* Call CreateEmployee tool
+
+When a user asks to list employees:
+
+* Call GetAllEmployees tool
+
+The agent was configured to respond conversationally after tool execution.
+
+---
+
+# 5. Demonstration
+
+The final system supports natural language interaction.
+
+Example interaction:
+
+User:
+Add Alice as Data Analyst in Finance
+
+Agent reasoning:
+Detect employee creation intent
+↓
+Call CreateEmployee tool
+↓
+MCP server sends POST /employees
+↓
+Employee API inserts record into database
+↓
+Agent confirms success
+
+Agent Response:
+"Alice has been successfully added as a Data Analyst in the Finance department."
+
+---
+
+# 6. Verification
+
+The database contents can be verified by calling:
+
+GET /employees
+
+Example output:
+
+[
+{
+"id": 1,
+"name": "Alice",
+"role": "Data Analyst",
+"department": "Finance"
+}
+]
+
+This confirms the AI agent successfully created a database entry.
+
+---
+
+# 7. Key Challenges Encountered
+
+Several issues were resolved during development:
+
+• OpenAPI schema compatibility issues with Azure Foundry
+• FastAPI 422 response validation conflicts
+• Azure Container App ingress configuration
+• Missing Python dependencies in container builds
+• Tool response format mismatch between MCP server and API
+
+These were resolved through schema sanitization, dependency updates, and container configuration fixes.
+
+---
+
+# 8. Outcome
+
+The final system demonstrates:
+
+• AI agent tool calling
+• OpenAPI-based tool integration
+• Multi-service architecture
+• Containerized deployment on Azure
+• End-to-end natural language to database operation
+
+This architecture can be extended to support enterprise copilots and automation workflows.
+
+---
+
+# 9. Future Improvements
+
+Possible improvements include:
+
+• Replace SQLite with Azure PostgreSQL
+• Add authentication between services
+• Implement conversation memory for the agent
+• Add more HR operations (search, analytics, reporting)
+
+---

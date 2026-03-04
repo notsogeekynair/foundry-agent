@@ -1,0 +1,49 @@
+| Purpose                      | Command                                                                                                               | Notes                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Deploy container from source | `az containerapp up --name employee-api --resource-group mcp-agent-rg --location eastus --source .`                   | Builds Docker image and deploys API  |
+| Deploy MCP server            | `az containerapp up --name employee-mcp-api --resource-group mcp-agent-rg --location eastus --source .`               | Run inside MCP server folder         |
+| List container apps          | `az containerapp list -g mcp-agent-rg -o table`                                                                       | Shows all apps in the resource group |
+| Show container details       | `az containerapp show -n employee-api -g mcp-agent-rg`                                                                | Full configuration output            |
+| Get public URL               | `az containerapp show -n employee-api -g mcp-agent-rg --query properties.configuration.ingress.fqdn`                  | Returns public endpoint              |
+| Enable ingress               | `az containerapp ingress enable --name employee-api --resource-group mcp-agent-rg --type external --target-port 9000` | Makes API accessible externally      |
+| View container revisions     | `az containerapp revision list -n employee-api -g mcp-agent-rg -o table`                                              | Useful for debugging deployments     |
+| Restart a revision           | `az containerapp revision restart --name employee-api --resource-group mcp-agent-rg --revision <revision-name>`       | Restart specific revision            |
+| Follow container logs        | `az containerapp logs show -n employee-api -g mcp-agent-rg --follow`                                                  | Real-time logs                       |
+| View system logs             | `az containerapp logs show -n employee-api -g mcp-agent-rg --type system`                                             | Infrastructure-level logs            |
+| Check container health       | `az containerapp show -n employee-api -g mcp-agent-rg --query properties.latestRevisionName`                          | Shows current running revision       |
+| Check ingress configuration  | `az containerapp show -n employee-api -g mcp-agent-rg --query properties.configuration.ingress`                       | Verifies port + exposure             |
+| Delete container             | `az containerapp delete -n employee-api -g mcp-agent-rg`                                                              | Removes the container app            |
+| List container registries    | `az acr list -g mcp-agent-rg -o table`                                                                                | Shows the auto-created registry      |
+| Stream logs for MCP server   | `az containerapp logs show -n employee-mcp-api -g mcp-agent-rg --follow`                                              | Debug MCP tool calls                 |
+
+
+#check if api is reachable
+curl https://employee-api.niceground-961645f1.eastus.azurecontainerapps.io/
+
+#check records
+curl https://employee-api.niceground-961645f1.eastus.azurecontainerapps.io/employees
+
+#check mcp openapi schema
+curl https://employee-mcp-api.<your-url>.azurecontainerapps.io/openapi.json
+
+#follow in order if something breaks
+| Step                   | Command                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| Check container exists | `az containerapp list -g mcp-agent-rg`                                                          |
+| Check revisions        | `az containerapp revision list -n employee-api -g mcp-agent-rg`                                 |
+| Check logs             | `az containerapp logs show -n employee-api -g mcp-agent-rg --follow`                            |
+| Check ingress          | `az containerapp show -n employee-api -g mcp-agent-rg --query properties.configuration.ingress` |
+| Test API endpoint      | `curl https://employee-api.../employees`                                                        |
+
+
+employee-api - https://employee-api.niceground-961645f1.eastus.azurecontainerapps.io
+mcp server - https://employee-mcp-api.niceground-961645f1.eastus.azurecontainerapps.io
+
+workflow for after updating code 
+
+| Step                       | Command                                                                                             |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| Navigate to service folder | `cd employee-api`                                                                                   |
+| Redeploy service           | `az containerapp up --name employee-api --resource-group mcp-agent-rg --location eastus --source .` |
+| Check logs                 | `az containerapp logs show -n employee-api -g mcp-agent-rg --follow`                                |
+| Test endpoint              | `curl https://employee-api.../employees`                                                            |
