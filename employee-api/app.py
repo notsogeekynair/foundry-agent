@@ -72,7 +72,7 @@ def update_employee(emp_id:int ,emp:Employee):
 
     if not existing:
         db.close()
-        raise HTTPException(status_code=404,detail="Empoloyee not found")
+        raise HTTPException(status_code=404,detail="Employee not found")
 
     existing.name=emp.name
     existing.role=emp.role

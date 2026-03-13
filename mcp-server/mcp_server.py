@@ -17,9 +17,9 @@ app=FastAPI(
     title="Employee MCP Server",
     description="Bridge API for Employee Management System. Provides AI-agent compatible tools to Create, Read, Update, and Delete employee records.",
     version="1.0",
-    servers=[
-         {"url": "https://employee-mcp-api.niceground-961645f1.eastus.azurecontainerapps.io", "description": "Production MCP Server"}
-     ],
+     servers=[
+          {"url": os.getenv("MCP_SERVER_URL", "http://localhost:9000"), "description": "MCP Server"}
+      ],
     docs_url="/docs",
     redoc_url=None
 )
@@ -36,7 +36,7 @@ def custom_openapi():
         routes=app.routes,
     )
     openapi_schema["servers"] = [
-        {"url": "https://employee-mcp-api.niceground-961645f1.eastus.azurecontainerapps.io", "description": "Production MCP Server"}
+        {"url": os.getenv("MCP_SERVER_URL", "http://localhost:9000"), "description": "MCP Server"}
     ]
     
     # Change top-level version
@@ -109,15 +109,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_URL = "https://employee-api.niceground-961645f1.eastus.azurecontainerapps.io"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # Security
-API_KEY_NAME = "dev_secret_key_123"
+API_KEY_NAME = "X-API-Key"
 API_KEY = os.getenv("MCP_API_KEY", "dev_secret_key_123")  # Replace in production
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
-async def get_api_key():
-    return True
+async def get_api_key(header_val: str = Security(api_key_header)):
+    if header_val != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Could not validate API KEY"
+        )
+    return header_val
     
 class MessageResponse(BaseModel):
     message: str
